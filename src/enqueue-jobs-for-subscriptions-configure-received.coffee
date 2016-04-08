@@ -1,8 +1,11 @@
-_    = require 'lodash'
-http = require 'http'
+_                   = require 'lodash'
+async               = require 'async'
+http                = require 'http'
+SubscriptionManager = require 'meshblu-core-manager-subscription'
 
 class EnqueueJobsForSubscriptionsConfigureReceived
-  constructor: (options={}) ->
+  constructor: ({datastore,@jobManager,uuidAliasResolver}) ->
+    @subscriptionManager ?= new SubscriptionManager {datastore, uuidAliasResolver}
 
   _doCallback: (request, code, callback) =>
     response =
@@ -13,9 +16,41 @@ class EnqueueJobsForSubscriptionsConfigureReceived
     callback null, response
 
   do: (request, callback) =>
-    {uuid, messageType, options} = request.metadata
-    message = JSON.parse request.rawData
+    {fromUuid, toUuid, route} = request.metadata
+    if _.some(route, {to: toUuid, from: fromUuid, type: 'configure.received'})
+      return @_doCallback request, 204, callback
 
-    return @_doCallback request, 204, callback
+    @subscriptionManager.emitterListForType {emitterUuid: toUuid, type: 'configure.received'}, (error, subscriptions) =>
+      return callback error if error?
+      return @_doCallback request, 204, callback if _.isEmpty subscriptions
+
+      requests = _.map subscriptions, (subscription) =>
+        @_buildRequest {request, subscription}
+
+      async.each requests, @_createRequest, (error) =>
+        return callback error if error?
+        return @_doCallback request, 204, callback
+
+  _buildRequest: ({request, subscription}) =>
+    hop  =
+      from: request.metadata.fromUuid
+      to: request.metadata.toUuid
+      type: 'configure.received'
+
+    route = _.compact [hop].concat request.metadata.route
+
+    return {
+      metadata:
+        jobType: 'DeliverSubscriptionConfigureReceived'
+        auth:
+          uuid: subscription.subscriberUuid
+        fromUuid: subscription.emitterUuid
+        toUuid: subscription.subscriberUuid
+        route: route
+      rawData: request.rawData
+    }
+
+  _createRequest: (request, callback) =>
+    @jobManager.createRequest 'request', request, callback
 
 module.exports = EnqueueJobsForSubscriptionsConfigureReceived
