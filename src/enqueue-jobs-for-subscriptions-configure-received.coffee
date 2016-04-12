@@ -37,7 +37,8 @@ class EnqueueJobsForSubscriptionsConfigureReceived
       to: request.metadata.toUuid
       type: 'configure.received'
 
-    route = _.compact [hop].concat request.metadata.route
+    route = _.cloneDeep request.metadata.route ? []
+    route.push hop
 
     return {
       metadata:
