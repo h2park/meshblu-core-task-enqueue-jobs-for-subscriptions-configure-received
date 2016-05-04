@@ -1,10 +1,11 @@
-_          = require 'lodash'
 redis      = require 'fakeredis'
 RedisNS    = require '@octoblu/redis-ns'
 mongojs    = require 'mongojs'
 uuid       = require 'uuid'
 Datastore  = require 'meshblu-core-datastore'
 JobManager = require 'meshblu-core-job-manager'
+{beforeEach, context, describe, it} = global
+{expect} = require 'chai'
 EnqueueJobsForSubscriptionsConfigureReceived = require '../'
 
 describe 'EnqueueJobsForSubscriptionsConfigureReceived', ->
@@ -86,7 +87,7 @@ describe 'EnqueueJobsForSubscriptionsConfigureReceived', ->
           @jobManager.getRequest ['request'], (error, request) =>
             return done error if error?
             delete request?.metadata?.responseId
-            expect(request).to.deep.equal {
+            expect(request).to.containSubset {
               metadata:
                 jobType: 'DeliverSubscriptionConfigureReceived'
                 auth:
@@ -117,6 +118,7 @@ describe 'EnqueueJobsForSubscriptionsConfigureReceived', ->
                 to: 'emitter-uuid'
                 type: 'configure.sent'
               }]
+              forwardedRoutes: []
             rawData: '{"original":"message"}'
 
           @sut.do request, (error, @response) => done error
@@ -134,7 +136,7 @@ describe 'EnqueueJobsForSubscriptionsConfigureReceived', ->
           @jobManager.getRequest ['request'], (error, request) =>
             return done error if error?
             delete request?.metadata?.responseId
-            expect(request).to.deep.equal {
+            expect(request).to.containSubset {
               metadata:
                 jobType: 'DeliverSubscriptionConfigureReceived'
                 auth:
@@ -153,6 +155,7 @@ describe 'EnqueueJobsForSubscriptionsConfigureReceived', ->
                     type: "configure.received"
                   }
                 ]
+                forwardedRoutes: []
               rawData: '{"original":"message"}'
             }
             done()

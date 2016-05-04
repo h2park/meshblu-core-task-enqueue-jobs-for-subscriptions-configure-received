@@ -48,6 +48,7 @@ class EnqueueJobsForSubscriptionsConfigureReceived
         fromUuid: subscription.emitterUuid
         toUuid: subscription.subscriberUuid
         route: route
+        forwardedRoutes: request.metadata.forwardedRoutes
       rawData: request.rawData
     }
 
