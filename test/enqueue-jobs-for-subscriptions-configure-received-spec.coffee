@@ -10,10 +10,11 @@ EnqueueJobsForSubscriptionsConfigureReceived = require '../'
 
 describe 'EnqueueJobsForSubscriptionsConfigureReceived', ->
   beforeEach (done) ->
+    database = mongojs 'subscription-test'
     @datastore = new Datastore
-      database: mongojs 'subscription-test'
+      database: database
       collection: 'subscriptions'
-    @datastore.remove done
+    database.subscriptions.remove done
 
   beforeEach ->
     @redisKey = uuid.v1()
